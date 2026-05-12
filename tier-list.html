@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Harness Strategies — Tier List</title>
+<style>
+  :root {
+    --bg: #2b2b2b;
+    --tile-bg: #fdfdfd;
+    --ink: #1a1a1a;
+    --muted: #888;
+
+    --tier-s: #ff7f7f;
+    --tier-a: #ffbf7f;
+    --tier-b: #ffdf7f;
+    --tier-c: #bfff7f;
+    --tier-f: #b07fff;
+    --bench-bg: #3a3a3a;
+    --bench-row: #1f1f1f;
+
+    --cat-a: #c44a4a; --cat-b: #d27a2a; --cat-c: #c9a02a;
+    --cat-d: #4a9c3a; --cat-e: #2f9c84; --cat-f: #3a7fb8;
+    --cat-g: #5a5ab4; --cat-h: #9248ad; --cat-i: #b14a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: #e8e8e8; background: var(--bg);
+  }
+
+  /* Shared container: every horizontal band sits in this rail. */
+  header, .toolbar, .tierlist, .bench, .hint {
+    max-width: 1600px; margin-left: auto; margin-right: auto;
+    padding-left: 24px; padding-right: 24px;
+  }
+  header {
+    padding-top: 14px; padding-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  header h1 {
+    margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
+    color: #cfcfcf;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  header h1 .mode {
+    font-size: 9.5px; font-weight: 700; padding: 2px 6px;
+    border-radius: 2px;
+    background: #444; color: #ccc;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    display: none;
+  }
+  header h1 .mode.edit { display: inline-block; background: #c97a3a; color: #fff; }
+  header .status {
+    font-size: 11px; color: #8a8a8a; white-space: nowrap;
+    margin-left: auto;
+    font-style: italic;
+  }
+  header .status.dirty { color: #ffc080; font-style: normal; }
+  header .nav-link {
+    font-size: 12px; color: #b0b0b0; text-decoration: none;
+    padding: 4px 8px; border-radius: 3px;
+    border: 1px solid #3a3a3a;
+  }
+  header .nav-link:hover { color: #fff; border-color: #5a5a5a; }
+  header .menu-btn {
+    background: transparent; color: #aaa;
+    border: 1px solid #3a3a3a; border-radius: 3px;
+    width: 30px; height: 26px;
+    cursor: pointer; font-family: inherit; font-size: 16px;
+    line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  header .menu-btn:hover { color: #fff; background: #3a3a3a; }
+  header .menu-btn.open { color: #fff; background: #4a4a4a; border-color: #5a5a5a; }
+
+  /* Overflow menu (was the toolbar) */
+  .menu {
+    display: none;
+    position: absolute;
+    right: 24px; top: 48px;
+    background: #232323;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.5);
+    padding: 6px;
+    z-index: 30;
+    flex-direction: column;
+    width: 240px;
+    gap: 2px;
+  }
+  .menu.open { display: flex; }
+  .menu button {
+    background: transparent; color: #d0d0d0;
+    border: 0; border-radius: 3px;
+    padding: 7px 10px; font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    text-align: left; line-height: 1.2;
+  }
+  .menu button:hover { background: #3a3a3a; color: #fff; }
+  .menu button.primary { color: #9ec5e8; }
+  .menu button.primary:hover { background: #2a4a6a; color: #fff; }
+  .menu button.warn { color: #e8b48a; }
+  .menu button.warn:hover { background: #6a4a2a; color: #fff; }
+  .menu button.danger:hover { background: #6a2a2a; color: #fff; }
+  .menu button.toggle-on { background: #c97a3a; color: #fff; }
+  .menu button.toggle-on:hover { background: #d98a4a; }
+  .menu .sep {
+    height: 1px; background: #3a3a3a;
+    margin: 4px 6px; flex-shrink: 0;
+  }
+
+  .tierlist { padding-top: 0; padding-bottom: 24px; }
+  .row {
+    display: grid; grid-template-columns: 120px 1fr; gap: 0;
+    background: #1a1a1a; border-bottom: 2px solid #2b2b2b;
+  }
+  .row:first-child { border-top: 2px solid #2b2b2b; }
+  .row-label {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #1a1a1a; text-align: center;
+    padding: 14px 8px; min-height: 100px;
+  }
+  .row-label .letter {
+    font-family: "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: 52px; line-height: 1; font-weight: 700;
+    min-width: 30px; min-height: 52px;
+  }
+  .row-label .tname {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    margin-top: 8px; font-weight: 700; min-height: 13px; min-width: 30px;
+  }
+  .row-label .tdesc {
+    font-size: 9.5px; margin-top: 4px; font-weight: 500;
+    opacity: 0.75; line-height: 1.25; min-height: 12px; min-width: 30px;
+  }
+  .row-label [contenteditable="true"] {
+    outline: 2px dashed rgba(0,0,0,0.3);
+    outline-offset: 2px; border-radius: 2px;
+    background: rgba(255,255,255,0.35); cursor: text;
+  }
+  .row-label [contenteditable="true"]:focus {
+    outline-color: rgba(0,0,0,0.7); background: rgba(255,255,255,0.6);
+  }
+
+  .row-s .row-label { background: var(--tier-s); }
+  .row-a .row-label { background: var(--tier-a); }
+  .row-b .row-label { background: var(--tier-b); }
+  .row-c .row-label { background: var(--tier-c); }
+  .row-f .row-label { background: var(--tier-f); color: #fff; }
+  .row-f .row-label [contenteditable="true"] {
+    background: rgba(0,0,0,0.2); outline-color: rgba(255,255,255,0.4);
+  }
+  .row-f .row-label [contenteditable="true"]:focus {
+    background: rgba(0,0,0,0.4); outline-color: rgba(255,255,255,0.8);
+  }
+
+  .tiles {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 12px; align-content: flex-start;
+    background: #2b2b2b; min-height: 100px;
+    transition: background 0.1s ease;
+  }
+  .tiles.drop-target {
+    background: #3a4a5a; outline: 2px dashed #6a90b8; outline-offset: -8px;
+  }
+  .tiles.empty::before {
+    content: "drop here";
+    color: #5a5a5a; font-size: 11px; font-style: italic;
+    align-self: center; margin: 0 auto;
+  }
+
+  /* Bench */
+  .bench { padding-top: 0; padding-bottom: 60px; }
+  .bench-header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bench-row); border-radius: 6px 6px 0 0;
+    border: 1px solid #0a0a0a; border-bottom: none;
+  }
+  .bench-title {
+    font-size: 13px; font-weight: 700; color: #d8d8d8;
+    line-height: 22px;
+  }
+  .bench-title .count {
+    color: #8a8a8a; font-weight: 500; margin-left: 4px; font-size: 12px;
+  }
+  .bench-search {
+    background: #1a1a1a; border: 1px solid #4a4a4a; color: #e8e8e8;
+    padding: 0 10px; height: 22px; border-radius: 4px; font-size: 12px;
+    width: 200px; font-family: inherit;
+    margin-left: auto;
+  }
+  .bench-search::placeholder { color: #6a6a6a; }
+  .cat-chips { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .cat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0 9px; height: 22px;
+    background: #2a2a2a; color: #888;
+    border: 1px solid #3a3a3a; border-radius: 11px;
+    font-size: 10.5px; font-weight: 600; cursor: pointer;
+    user-select: none; text-transform: uppercase; letter-spacing: 0.03em;
+    transition: all 0.07s ease;
+  }
+  .cat-chip.on {
+    color: #fff;
+    background: var(--cat-color, #555);
+    border-color: var(--cat-color, #555);
+  }
+  .cat-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cat-color); }
+  .cat-chip.on .dot { background: rgba(255,255,255,0.9); }
+
+  .bench-body {
+    background: var(--bench-bg); padding: 12px; min-height: 120px;
+    border-radius: 0 0 6px 6px; border: 1px solid #0a0a0a; border-top: none;
+    display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+    transition: background 0.1s ease;
+  }
+  .bench-body.drop-target {
+    background: #3a4a5a; outline: 2px dashed #6a90b8; outline-offset: -8px;
+  }
+  .bench-body.empty::before {
+    content: "bench is empty — everything is in tiers";
+    color: #6a6a6a; font-size: 11.5px; font-style: italic;
+    align-self: center; margin: 0 auto;
+  }
+
+  .tile {
+    background: var(--tile-bg);
+    border-left: 4px solid var(--cat-color, #888);
+    border-radius: 3px;
+    padding: 8px 28px 8px 10px; font-size: 12px;
+    cursor: grab; user-select: none;
+    transition: transform 0.07s ease, box-shadow 0.07s ease, opacity 0.07s ease;
+    display: flex; flex-direction: column; gap: 3px;
+    width: 200px; color: var(--ink); position: relative;
+  }
+  .tile:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .tile.dragging { opacity: 0.4; cursor: grabbing; }
+  .tile.active { box-shadow: 0 0 0 2px #6a90b8, 0 4px 12px rgba(0,0,0,0.4); }
+  .tile::after {
+    content: "›"; position: absolute; right: 8px; top: 50%;
+    transform: translateY(-50%); color: #b0b0b0;
+    font-size: 18px; font-weight: 600; line-height: 1;
+    transition: color 0.07s ease, transform 0.07s ease; pointer-events: none;
+  }
+  .tile:hover::after { color: var(--cat-color); transform: translateY(-50%) translateX(3px); }
+  body.edit-mode .tile::after { content: "✎"; font-size: 12px; }
+  .tile .cat-label {
+    font-size: 9px; font-weight: 600; color: var(--cat-color);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tile .name { line-height: 1.2; font-weight: 500; font-size: 11.5px; }
+
+  /* Panel */
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(540px, 100vw);
+    background: #f7f8fa; color: var(--ink);
+    border-left: 1px solid #1a1a1a;
+    box-shadow: -8px 0 24px rgba(0,0,0,0.4);
+    transform: translateX(100%);
+    transition: transform 0.18s ease;
+    overflow-y: auto;
+    padding: 24px 28px 40px;
+    z-index: 10;
+  }
+  .panel.open { transform: translateX(0); }
+  .panel .close {
+    position: absolute; top: 12px; right: 16px;
+    background: #eaecef; border: none; border-radius: 4px;
+    width: 28px; height: 28px;
+    font-size: 18px; cursor: pointer; color: #555;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel .close:hover { background: #d8dade; color: #000; }
+  .panel .panel-id {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; font-weight: 700; margin-bottom: 4px;
+  }
+  .panel h2 { margin: 0 0 12px; font-size: 19px; line-height: 1.3; font-weight: 700; padding-right: 32px; }
+  .panel .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; font-size: 11px; }
+  .panel .badge {
+    padding: 4px 10px; border-radius: 3px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px;
+  }
+  .panel .badge.tier-s { background: var(--tier-s); color: #5a1010; }
+  .panel .badge.tier-a { background: var(--tier-a); color: #5a3010; }
+  .panel .badge.tier-b { background: var(--tier-b); color: #5a4810; }
+  .panel .badge.tier-c { background: var(--tier-c); color: #1c4810; }
+  .panel .badge.tier-f { background: var(--tier-f); color: #fff; }
+  .panel .badge.tier-bench { background: #888; color: #fff; }
+  .panel .desc { font-size: 14px; line-height: 1.55; color: #2a3340; margin-bottom: 18px; }
+  .panel h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6a7a88; margin: 18px 0 8px; font-weight: 700;
+  }
+  .panel ul.sources { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+  .panel ul.sources li { margin-bottom: 6px; }
+  .panel ul.sources a { color: #2a5a8a; word-break: break-word; }
+
+  /* Editor form */
+  .editor-form { display: flex; flex-direction: column; gap: 12px; }
+  .editor-row { display: flex; flex-direction: column; gap: 4px; }
+  .editor-row label {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6a7a88;
+  }
+  .editor-row input, .editor-row textarea, .editor-row select {
+    background: #fff; border: 1px solid #ccd2d8; border-radius: 4px;
+    padding: 7px 9px; font-size: 13px; font-family: inherit; color: var(--ink);
+  }
+  .editor-row input:focus, .editor-row textarea:focus, .editor-row select:focus {
+    outline: 2px solid #6a90b8; outline-offset: -1px; border-color: #6a90b8;
+  }
+  .editor-row textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
+  .editor-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .source-list { display: flex; flex-direction: column; gap: 6px; }
+  .source-item { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
+  .source-item input {
+    background: #fff; border: 1px solid #ccd2d8; border-radius: 4px;
+    padding: 5px 8px; font-size: 12px; font-family: inherit;
+  }
+  .source-item button {
+    background: #eaecef; border: 1px solid #ccd2d8; border-radius: 4px;
+    width: 28px; cursor: pointer; color: #888; font-size: 14px;
+  }
+  .source-item button:hover { background: #f5d8d8; color: #a04040; }
+  .add-source {
+    background: #eaecef; border: 1px dashed #aab3bc; border-radius: 4px;
+    padding: 6px; font-size: 11px; cursor: pointer; color: #555;
+    align-self: flex-start;
+  }
+  .add-source:hover { background: #dde3eb; }
+  .delete-pattern {
+    background: #f5d8d8; border: 1px solid #d8a8a8; color: #8a3a3a;
+    padding: 7px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;
+    cursor: pointer; align-self: flex-start; margin-top: 18px;
+  }
+  .delete-pattern:hover { background: #ecc2c2; }
+
+  /* Modal */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 20;
+  }
+  .modal.open { display: flex; }
+  .modal-inner {
+    background: #2a2a2a; border: 1px solid #4a4a4a; border-radius: 6px;
+    padding: 24px; width: min(700px, 92vw); max-height: 80vh;
+    display: flex; flex-direction: column;
+  }
+  .modal h3 {
+    margin: 0 0 12px; font-size: 14px; color: #fff;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .modal textarea {
+    flex: 1; background: #1a1a1a; color: #e8e8e8;
+    border: 1px solid #4a4a4a; border-radius: 4px; padding: 12px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; min-height: 360px; resize: vertical;
+  }
+  .modal .actions {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;
+  }
+
+  .hint {
+    text-align: center; color: #888; font-size: 12px;
+    padding-top: 14px; padding-bottom: 14px; font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    header, .toolbar, .tierlist, .bench, .hint {
+      padding-left: 12px; padding-right: 12px;
+    }
+    header { padding-top: 18px; }
+    .row { grid-template-columns: 80px 1fr; }
+    .row-label .letter { font-size: 36px; }
+    .row-label .tname { font-size: 9px; }
+    .row-label .tdesc { display: none; }
+    .tile { width: calc(50% - 6px); }
+    .panel { width: 100vw; }
+    .bench-search { width: 100%; margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Harness Strategies<span class="mode" id="mode-label">edit</span></h1>
+  <span class="status" id="status"></span>
+  <a class="nav-link" href="archive.html">Archive →</a>
+  <button class="menu-btn" id="menu-btn" aria-label="Menu" title="Open menu">⋯</button>
+</header>
+
+<div class="menu" id="menu">
+  <button id="edit-toggle">✎ Edit</button>
+  <button id="add-pattern" style="display:none">+ New pattern</button>
+  <span class="sep"></span>
+  <button id="load-canonical">↻ Load canonical ranking</button>
+  <button id="clear-all" class="danger">✗ Clear to bench</button>
+  <button id="reset" class="danger">↺ Reset to defaults</button>
+  <span class="sep"></span>
+  <button id="download-json" class="warn">↧ Download JSON</button>
+  <button id="load-json" class="warn">↥ Load JSON</button>
+  <input type="file" id="file-input" accept=".json,application/json" style="display:none">
+  <button id="export-md" class="primary">⬇ Export markdown</button>
+</div>
+
+<div class="tierlist" id="tierlist"></div>
+
+<div class="bench">
+  <div class="bench-header">
+    <span class="bench-title">Bench <span class="count" id="bench-count">(0)</span></span>
+    <div class="cat-chips" id="cat-chips"></div>
+    <input class="bench-search" id="search" placeholder="search id, name, category…" type="search">
+  </div>
+  <div class="bench-body" id="bench-body" data-tier="bench"></div>
+</div>
+
+<div class="hint">Drag tiles · click for details (click again to close) · Edit mode lets you rename tiers and modify pattern content · Esc closes</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <button class="close" id="close" aria-label="Close">×</button>
+  <div id="panel-content"></div>
+</aside>
+
+<div class="modal" id="modal">
+  <div class="modal-inner">
+    <h3 id="modal-title">Markdown export</h3>
+    <textarea id="modal-text" readonly></textarea>
+    <div class="actions">
+      <button id="copy">Copy to clipboard</button>
+      <button id="close-modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA_KEY = "harness-tierlist-data-v1";
+
+const CATEGORIES = {
+  A: { label: "Instructions & Context",    short: "Instructions",    color: "var(--cat-a)" },
+  B: { label: "AI Worker Shaping",         short: "AI Workers",      color: "var(--cat-b)" },
+  C: { label: "Multi-Agent Orchestration", short: "Multi-Agent",     color: "var(--cat-c)" },
+  D: { label: "Local Enforcement",         short: "Local Enforce",   color: "var(--cat-d)" },
+  E: { label: "PR Review Automation",      short: "PR Review",       color: "var(--cat-e)" },
+  F: { label: "PR Gates",                  short: "PR Gates",        color: "var(--cat-f)" },
+  G: { label: "Mechanical Automation",     short: "Mechanical",      color: "var(--cat-g)" },
+  H: { label: "Standards & Conventions",   short: "Standards",       color: "var(--cat-h)" },
+  I: { label: "External Integration",      short: "External",        color: "var(--cat-i)" },
+};
+
+const DEFAULT_TIERS = {
+  S: { letter: "S", name: "Critical",       desc: "Use everywhere, every project" },
+  A: { letter: "A", name: "High potential", desc: "Try soon, likely big payoff" },
+  B: { letter: "B", name: "Conditional",    desc: "Depends on project shape" },
+  C: { letter: "C", name: "Niche",          desc: "Skip unless specific need" },
+  F: { letter: "F", name: "Avoid",          desc: "Actively bad fit / disputed" },
+};
+
+const DEFAULT_PATTERNS = [
+  { id: "A1", cat: "A", canonical: "S", name: "CLAUDE.md / AGENTS.md",
+    desc: "A markdown file at the repo root that auto-loads into every agent session as standing instructions: build commands, code style, architecture pointers, what to never touch.",
+    sources: [
+      { t: "Anthropic — Best practices for Claude Code (HN 614/257)", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "AGENTS.md spec (Linux Foundation, ~60K repos, HN 837/382)", u: "https://agents.md/" },
+      { t: "GitHub Blog — 2,500-repo agents.md study", u: "https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/" },
+    ]},
+  { id: "A2", cat: "A", canonical: "S", name: "Path-scoped / per-directory rules",
+    desc: "Multiple instruction files at different directory levels; agents pick up the closest one. Used to give different conventions to different packages in a monorepo.",
+    sources: [
+      { t: "Cursor — Rules docs", u: "https://cursor.com/docs/rules" },
+      { t: "Anthropic — child-directory CLAUDE.md", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Datadog — Steering AI Agents in Monorepos", u: "https://dev.to/datadog-frontend-dev/steering-ai-agents-in-monorepos-with-agentsmd-13g0" },
+    ]},
+  { id: "A3", cat: "A", canonical: "S", name: "Skills / SKILL.md",
+    desc: ".claude/skills/<name>/SKILL.md with instructions + scripts the agent loads only when relevant — progressive disclosure of domain knowledge.",
+    sources: [
+      { t: "Anthropic — Claude Skills", u: "https://code.claude.com/docs/en/skills" },
+      { t: "Counter-evidence: AGENTS.md outperforms skills (Vercel)", u: "https://news.ycombinator.com/item?id=46809708" },
+    ]},
+  { id: "A4", cat: "A", canonical: "A", name: "Map-not-encyclopedia doc style",
+    desc: "Agent-facing docs should be terse pointers (where to look, what commands to run) rather than exhaustive prose. ETH study found long files raise cost 20%+ and LLM-generated AGENTS.md hurt performance 2–3%.",
+    sources: [
+      { t: "GitHub Blog — 2,500-repo AGENTS.md study", u: "https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/" },
+      { t: "ETH Zürich AGENTS.md empirical study", u: "https://news.ycombinator.com/item?id=47295454" },
+    ]},
+  { id: "A5", cat: "A", canonical: "A", name: "README / spec-driven development",
+    desc: "Write the spec/README before letting the agent code; treat the spec as the contract.",
+    sources: [
+      { t: "Amazon Kiro", u: "https://kiro.dev/" },
+      { t: "Birgitta Böckeler / Fowler — SPDD", u: "https://martinfowler.com/articles/structured-prompt-driven/" },
+    ]},
+  { id: "A6", cat: "A", canonical: "A", name: "Karpathy LLM-Wiki / compiled KB",
+    desc: "Drop raw sources into a folder; have the LLM compile them into a cross-referenced markdown wiki the agent then consumes. Treats context like a build artifact.",
+    sources: [
+      { t: "Karpathy gist", u: "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" },
+      { t: "VentureBeat coverage", u: "https://venturebeat.com/data/karpathy-shares-llm-knowledge-base-architecture-that-bypasses-rag-with-an" },
+    ]},
+
+  { id: "B1", cat: "B", canonical: "S", name: "Subagents",
+    desc: ".claude/agents/<name>.md defines a specialized assistant with its own system prompt, tools, context window. Anthropic's research showed Opus lead + Sonnet workers beat single-agent by 90%+.",
+    sources: [
+      { t: "Anthropic — Sub-agents docs", u: "https://code.claude.com/docs/en/sub-agents" },
+      { t: "Anthropic Engineering — Multi-agent research system", u: "https://www.anthropic.com/engineering/multi-agent-research-system" },
+    ]},
+  { id: "B2", cat: "B", canonical: "S", name: "Hooks (lifecycle shell scripts)",
+    desc: "PreToolUse / PostToolUse / OnStop scripts that run lint, format, secrets-scan, or block writes. Deterministic — unlike CLAUDE.md instructions.",
+    sources: [
+      { t: "Anthropic — Hooks reference", u: "https://code.claude.com/docs/en/hooks" },
+      { t: "HN — Claude Code now supports hooks", u: "https://news.ycombinator.com/item?id=44429225" },
+    ]},
+  { id: "B3", cat: "B", canonical: "S", name: "Plan mode",
+    desc: "A read-only mode where the agent reads files and proposes a plan without modifying anything; user reviews/edits the plan before unleashing implementation.",
+    sources: [{ t: "Anthropic — Explore-plan-code", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "B4", cat: "B", canonical: "S", name: "Headless mode (claude -p)",
+    desc: "Run agent from CI, pre-commit, or pipeline scripts; structured JSON output for programmatic parsing.",
+    sources: [{ t: "Anthropic — Headless mode", u: "https://code.claude.com/docs/en/headless" }]},
+  { id: "B5", cat: "B", canonical: "S", name: "Permission allowlists / sandbox / auto",
+    desc: "Three levels of approval reduction: allowlist specific commands, OS-level sandbox, classifier model that auto-approves safe actions.",
+    sources: [
+      { t: "Anthropic — Permission modes", u: "https://code.claude.com/docs/en/permission-modes" },
+      { t: "Simon Willison — Auto mode", u: "https://simonwillison.net/2026/Mar/24/" },
+    ]},
+  { id: "B6", cat: "B", canonical: "S", name: "Slash commands",
+    desc: "User-defined /foo invocations that fire a fixed prompt or skill. Used for repeatable workflows like /fix-issue 1234 or Sunshine's /push.",
+    sources: [{ t: "Anthropic Skills with disable-model-invocation", u: "https://code.claude.com/docs/en/skills" }]},
+  { id: "B7", cat: "B", canonical: "A", name: "CLI-tool-first over MCP",
+    desc: "Wrap external services in a thin CLI (gh, aws, custom xyz-cli) rather than an MCP server, because CLIs are more context-efficient and easier to permission.",
+    sources: [
+      { t: "Anthropic best-practices — Use CLI tools", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Kyle (HumanLayer) — Skill issue", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" },
+    ]},
+  { id: "B8", cat: "B", canonical: "S", name: "Context management (/clear, /compact)",
+    desc: "Active hygiene: clear between unrelated tasks; compact under instruction; rewind to checkpoints; pin important context. Context is the bottleneck.",
+    sources: [
+      { t: "Anthropic best-practices", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Addy Osmani — Agent Harness Engineering", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+    ]},
+  { id: "B9", cat: "B", canonical: "S", name: "Subagents-for-investigation",
+    desc: "Use a subagent specifically to read many files / explore, so its noise doesn't pollute main context — the subagent returns a 1-paragraph summary.",
+    sources: [{ t: "Anthropic best-practices — Subagents for investigation", u: "https://code.claude.com/docs/en/best-practices" }]},
+
+  { id: "C1", cat: "C", canonical: "S", name: "Multi-agent code review panel",
+    desc: "Multiple subagents reviewing the same diff for different concerns (security, perf, style, tests) and voting/aggregating findings.",
+    sources: [
+      { t: "Anthropic — Code Review (multi-agent)", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" },
+      { t: "HAMY — 9 Parallel AI Agents", u: "https://hamy.xyz/blog/2026-02_code-reviews-claude-subagents" },
+    ]},
+  { id: "C2", cat: "C", canonical: "S", name: "Writer/Reviewer split",
+    desc: "One session writes; a second fresh-context session reviews. Fresh context removes self-confirmation bias.",
+    sources: [
+      { t: "Anthropic — Run multiple sessions", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Addy Osmani — Generator/Evaluator splits", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+    ]},
+  { id: "C3", cat: "C", canonical: "S", name: "Orchestrator-worker",
+    desc: "Lead agent plans, spawns parallel subagents, synthesizes results, calls a Citation agent. Anthropic Research's pattern.",
+    sources: [
+      { t: "Anthropic — Multi-agent research system", u: "https://www.anthropic.com/engineering/multi-agent-research-system" },
+      { t: "Simon Willison's notes", u: "https://simonwillison.net/2025/Jun/14/multi-agent-research-system/" },
+    ]},
+  { id: "C4", cat: "C", canonical: "F", name: "Don't build multi-agents",
+    desc: "Cognition's argument: parallel multi-agent systems are fragile because subagents can't share full traces; prefer sequential pipelines with full context. Live debate against C1/C3.",
+    sources: [
+      { t: "Cognition — Don't Build Multi-Agents", u: "https://cognition.ai/blog/dont-build-multi-agents" },
+      { t: "HN — 200+ point thread", u: "https://news.ycombinator.com/item?id=45096962" },
+    ]},
+  { id: "C5", cat: "C", canonical: "A", name: "Fan-out across files",
+    desc: "Loop a single-file prompt over thousands of files (e.g., React→Vue migration); use --allowedTools to scope.",
+    sources: [{ t: "Anthropic — Fan out across files", u: "https://code.claude.com/docs/en/best-practices" }]},
+
+  { id: "D1", cat: "D", canonical: "S", name: "Post-edit lint / format hook",
+    desc: "PostToolUse hook runs eslint / ruff / prettier / detekt after each file edit; surfaces errors back to the agent's context.",
+    sources: [
+      { t: "Anthropic — Hooks docs", u: "https://code.claude.com/docs/en/hooks" },
+      { t: "Fowler — Harness engineering", u: "https://martinfowler.com/articles/harness-engineering.html" },
+    ]},
+  { id: "D2", cat: "D", canonical: "A", name: "Structure-aware lint (ast-grep)",
+    desc: "Prefer AST-aware tools over regex/text matching because they catch semantic violations LLMs miss.",
+    sources: [
+      { t: "Trail of Bits — claude-code-config", u: "https://deepwiki.com/trailofbits/claude-code-config/10.3-pre-commit-hooks" },
+      { t: "ast-grep-pre-commit", u: "https://github.com/boidolr/ast-grep-pre-commit" },
+    ]},
+  { id: "D3", cat: "D", canonical: "S", name: "Type-check / compile gate",
+    desc: "Run tsc --noEmit / mypy / kotlinc / cargo check after each edit so type errors surface immediately to the agent.",
+    sources: [{ t: "Anthropic — single highest-leverage thing", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "D4", cat: "D", canonical: "S", name: "Test gate as feedback loop",
+    desc: "Write-failing-test-then-fix or run subset suites after each change. Frames tests as agent feedback rather than just CI guard.",
+    sources: [
+      { t: "Anthropic — Give Claude a way to verify", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Kyle/HumanLayer — subset suites", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" },
+    ]},
+  { id: "D5", cat: "D", canonical: "A", name: "Fitness-function tests",
+    desc: "ArchUnit, Konsist, dep-cruiser. Tests that assert architectural rules (module X may not depend on Y, layer order, naming). Catches drift the agent doesn't notice.",
+    sources: [
+      { t: "Fowler — ArchUnit, fitness functions", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "Building Evolutionary Architectures", u: "https://www.thoughtworks.com/insights/books/building-evolutionary-architectures" },
+    ]},
+  { id: "D6", cat: "D", canonical: "S", name: "Pre-commit / pre-push gate",
+    desc: "Block the agent from committing/pushing unless lint+type+test pass; common pattern is prek or git pre-commit framework.",
+    sources: [{ t: "pre-commit framework", u: "https://pre-commit.com/" }]},
+  { id: "D7", cat: "D", canonical: "A", name: "UI screenshot diff verification",
+    desc: "Agent screenshots its UI output and compares to the design; Claude in Chrome is Anthropic's first-party version.",
+    sources: [{ t: "Anthropic — Claude in Chrome", u: "https://code.claude.com/docs/en/chrome" }]},
+
+  { id: "E1", cat: "E", canonical: "S", name: "PR-bot review",
+    desc: "Bot reviews each PR, posts inline comments and a summary; doesn't auto-approve. GitHub Copilot, CodeRabbit, Anthropic Code Review all in this space.",
+    sources: [
+      { t: "Anthropic Code Review", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" },
+      { t: "GitHub Copilot + AGENTS.md", u: "https://github.blog/changelog/2025-08-28-copilot-coding-agent-now-supports-agents-md-custom-instructions/" },
+    ]},
+  { id: "E2", cat: "E", canonical: "B", name: "Baseline auto-update bot",
+    desc: "Bot runs lint/test suite and updates baseline files automatically when an existing exception is removed; reduces friction of \"fix all warnings\" rules.",
+    sources: [{ t: "OpenAI Harness Engineering post", u: "https://openai.com/index/introducing-codex/" }]},
+  { id: "E3", cat: "E", canonical: "B", name: "Required AI review gate",
+    desc: "PR cannot merge until an AI reviewer has signed off. Commonly opposed because of false positives; sometimes reformulated as \"AI must run; human must merge.\"",
+    sources: [{ t: "Anthropic: AI won't approve PRs", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" }]},
+
+  { id: "F1", cat: "F", canonical: "S", name: "Required green CI before merge",
+    desc: "Branch-protection rule that blocks merge unless build/test pass. Universal; framed in harness writeups as \"back-pressure\" feedback.",
+    sources: [{ t: "Kyle/HumanLayer — back-pressure", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" }]},
+  { id: "F2", cat: "F", canonical: "A", name: "Coverage / mutation-test gate",
+    desc: "Block merges that drop coverage or fail mutation thresholds.",
+    sources: [{ t: "Fowler — coverage, mutation testing", u: "https://martinfowler.com/articles/harness-engineering.html" }]},
+  { id: "F3", cat: "F", canonical: "A", name: "Approved fixtures / golden-file",
+    desc: "Use a vetted set of test fixtures the agent's output must pass; verify fixtures by hand, then trust the loop.",
+    sources: [
+      { t: "Fowler — approved fixtures pattern", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "SWE-bench Verified", u: "https://www.swebench.com/" },
+    ]},
+
+  { id: "G1", cat: "G", canonical: "A", name: "Deterministic codemods",
+    desc: "Skip the LLM for structural refactors that have an exact recipe. Use OpenRewrite recipes / jscodeshift, let the LLM handle judgment parts.",
+    sources: [
+      { t: "Fowler — codemods, OpenRewrite", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "12-Factor Agents principle 1", u: "https://github.com/humanlayer/12-factor-agents" },
+    ]},
+  { id: "G2", cat: "G", canonical: "A", name: "LSP integration",
+    desc: "Plug the language server into the agent so it gets precise definitions / references / errors instead of grepping.",
+    sources: [
+      { t: "Anthropic — code intelligence plugin", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Fowler — LSP as feedforward control", u: "https://martinfowler.com/articles/harness-engineering.html" },
+    ]},
+  { id: "G3", cat: "G", canonical: "B", name: "Background-process monitor",
+    desc: "Long-running watchers (test runner in watch mode, dev server) feed errors continuously to the agent rather than running suites on demand.",
+    sources: [{ t: "Community discussion (claudefa.st hooks guide)", u: "https://claudefa.st" }]},
+
+  { id: "H1", cat: "H", canonical: "B", name: "Golden principles + enforcement column",
+    desc: "Doc lists each rule alongside the mechanism that enforces it (lint rule X, hook Y, test Z) — clear which rules are advisory vs deterministic.",
+    sources: [{ t: "Anthropic: \"if Claude already does it, delete the rule or convert to a hook\"", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "H2", cat: "H", canonical: "A", name: "Lint-enforced naming conventions",
+    desc: "File-name, class-name, package-layout rules turned into lint or structural-test failures so the agent gets feedback if it misnames.",
+    sources: [{ t: "Konsist (Kotlin), ArchUnit (Java), eslint plugins", u: "https://docs.konsist.lemonappdev.com/" }]},
+  { id: "H3", cat: "H", canonical: "A", name: "Declared dependencies preventing drift",
+    desc: "Lock dependency versions; lock package-to-package allowed dependencies (gradle version catalog, Nx project graph).",
+    sources: [
+      { t: "Nx — Teach Your AI Agent How to Work in a Monorepo", u: "https://nx.dev/blog/nx-ai-agent-skills" },
+      { t: "Monorepo.tools — Monorepos & AI", u: "https://monorepo.tools/ai" },
+    ]},
+  { id: "H4", cat: "H", canonical: "A", name: "Monorepo package boundaries",
+    desc: "Use the monorepo's project graph so the agent only sees the relevant package's files; package boundaries become a context-scoping primitive.",
+    sources: [
+      { t: "Nx posts above", u: "https://nx.dev/blog/nx-ai-agent-skills" },
+      { t: "d4b — AI agents in monorepos", u: "https://www.d4b.dev/blog/2026-04-03-ai-agents-in-monorepos-what-to-configure-differently-from-a-single-product-repo" },
+    ]},
+
+  { id: "I1", cat: "I", canonical: "B", name: "Mandated workflow (always /push)",
+    desc: "A single slash-command entrypoint that orchestrates lint→test→commit→PR with the right hooks. Sunshine's /push mandate is one example.",
+    sources: [{ t: "Anthropic Skills with disable-model-invocation: true", u: "https://code.claude.com/docs/en/skills" }]},
+  { id: "I2", cat: "I", canonical: "S", name: "Auto-mode classifier",
+    desc: "Sub-classifier model decides if an action is safe to auto-approve; only escalates \"scope escalation, unknown infrastructure, hostile content.\"",
+    sources: [
+      { t: "Simon Willison — Auto mode for Claude Code", u: "https://simonwillison.net/2026/Mar/24/" },
+      { t: "InfoQ — Inside Claude Code Auto Mode", u: "https://www.infoq.com/news/2026/05/anthropic-claude-code-auto-mode/" },
+    ]},
+  { id: "I3", cat: "I", canonical: "S", name: "12-Factor Agents principles",
+    desc: "Dexter Horthy's principles: own your prompts/context, small focused agents, structured-output tool calls, stateless reducers. Design rubric. 19.7K stars.",
+    sources: [{ t: "humanlayer/12-factor-agents", u: "https://github.com/humanlayer/12-factor-agents" }]},
+  { id: "I4", cat: "I", canonical: "A", name: "Agent evals (held-out task suite)",
+    desc: "A held-out set of tasks the harness should solve; rerun on each harness change; measure pass-rate, cost, latency.",
+    sources: [
+      { t: "SWE-bench / SWE-bench Verified", u: "https://www.swebench.com/" },
+      { t: "OpenHands evaluation harness", u: "https://docs.openhands.dev/openhands/usage/developers/evaluation-harness" },
+    ]},
+  { id: "I5", cat: "I", canonical: "B", name: "Memory systems beyond CLAUDE.md",
+    desc: "Tools that hook session events, extract decisions, and write back into CLAUDE.md/MEMORY.md — automating the \"compounds over time\" promise.",
+    sources: [
+      { t: "claude-mem", u: "https://github.com/thedotmack/claude-mem" },
+      { t: "claude-memory-compiler", u: "https://github.com/coleam00/claude-memory-compiler" },
+    ]},
+  { id: "I6", cat: "I", canonical: "A", name: "Worktrees for parallel sessions",
+    desc: "Each Claude session runs in its own git worktree so edits don't collide; supports parallel feature branches without context cross-pollination.",
+    sources: [{ t: "Anthropic — Worktrees", u: "https://code.claude.com/docs/en/worktrees" }]},
+  { id: "I7", cat: "I", canonical: "B", name: "Ralph Loop (long-horizon)",
+    desc: "A long-running loop pattern where the agent re-plans, executes, and verifies repeatedly without user intervention until a goal is reached.",
+    sources: [
+      { t: "Addy Osmani — Agent Harness Engineering", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+      { t: "ralph-loop plugin", u: "https://github.com/ghuntley/ralph" },
+    ]},
+];
+
+function makeDefaults() {
+  return {
+    version: 1,
+    tiers: structuredClone(DEFAULT_TIERS),
+    patterns: structuredClone(DEFAULT_PATTERNS),
+    placements: {},
+    filters: { search: "", cats: Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, true])) },
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(DATA_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.version === 1 && parsed.patterns && parsed.tiers) return parsed;
+    }
+  } catch (e) { console.warn("loadState failed", e); }
+  return makeDefaults();
+}
+
+let state = loadState();
+let editMode = false;
+let openPatternId = null;
+
+const TIER_ORDER = ["S", "A", "B", "C", "F"];
+
+function saveState() {
+  localStorage.setItem(DATA_KEY, JSON.stringify(state));
+  updateStatus();
+}
+
+function placementOf(p) {
+  return state.placements[p.id] || "bench";
+}
+function setPlacement(p, tier) {
+  if (tier === "bench") delete state.placements[p.id];
+  else state.placements[p.id] = tier;
+  saveState();
+}
+function updateStatus() {
+  const ranked = state.patterns.filter(p => placementOf(p) !== "bench").length;
+  const el = document.getElementById("status");
+  if (ranked === 0) {
+    el.textContent = `${state.patterns.length} patterns · none ranked`;
+    el.classList.remove("dirty");
+  } else {
+    el.textContent = `${ranked} of ${state.patterns.length} ranked`;
+    el.classList.add("dirty");
+  }
+}
+
+const tierlist = document.getElementById("tierlist");
+const benchBody = document.getElementById("bench-body");
+
+function render() {
+  renderTiers();
+  renderBench();
+  updateStatus();
+}
+
+function renderTiers() {
+  tierlist.innerHTML = "";
+  TIER_ORDER.forEach(tierKey => {
+    const tierMeta = state.tiers[tierKey];
+    const row = document.createElement("div");
+    row.className = `row row-${tierKey.toLowerCase()}`;
+    row.dataset.tier = tierKey;
+
+    const label = document.createElement("div");
+    label.className = "row-label";
+    label.innerHTML = `
+      <div class="letter" data-field="letter">${escapeHtml(tierMeta.letter)}</div>
+      <div class="tname" data-field="name">${escapeHtml(tierMeta.name)}</div>
+      <div class="tdesc" data-field="desc">${escapeHtml(tierMeta.desc)}</div>
+    `;
+    if (editMode) {
+      label.querySelectorAll("[data-field]").forEach(el => {
+        el.contentEditable = "true";
+        el.spellcheck = false;
+        el.addEventListener("blur", () => {
+          const field = el.dataset.field;
+          const val = el.textContent.trim();
+          if (val && state.tiers[tierKey][field] !== val) {
+            state.tiers[tierKey][field] = val;
+            saveState();
+          } else if (!val) {
+            el.textContent = state.tiers[tierKey][field];
+          }
+        });
+        el.addEventListener("keydown", e => {
+          if (e.key === "Enter") { e.preventDefault(); el.blur(); }
+        });
+      });
+    }
+    row.appendChild(label);
+
+    const tiles = document.createElement("div");
+    tiles.className = "tiles";
+    tiles.dataset.tier = tierKey;
+
+    const tierPatterns = state.patterns.filter(p => placementOf(p) === tierKey);
+    tierPatterns.sort(byCatThenId);
+    if (tierPatterns.length === 0) tiles.classList.add("empty");
+    tierPatterns.forEach(p => tiles.appendChild(makeTile(p)));
+    attachDropZone(tiles);
+    row.appendChild(tiles);
+    tierlist.appendChild(row);
+  });
+}
+
+function renderBench() {
+  benchBody.innerHTML = "";
+  const benchPatterns = state.patterns
+    .filter(p => placementOf(p) === "bench")
+    .filter(matchesFilters);
+  benchPatterns.sort(byCatThenId);
+
+  benchBody.classList.toggle("empty", benchPatterns.length === 0);
+  benchPatterns.forEach(p => benchBody.appendChild(makeTile(p)));
+
+  const total = state.patterns.filter(p => placementOf(p) === "bench").length;
+  const visible = benchPatterns.length;
+  document.getElementById("bench-count").textContent =
+    visible === total ? `(${total})` : `(${visible} of ${total})`;
+
+  attachDropZone(benchBody);
+}
+
+function byCatThenId(a, b) {
+  return a.cat === b.cat ? a.id.localeCompare(b.id) : a.cat.localeCompare(b.cat);
+}
+
+function matchesFilters(p) {
+  if (!state.filters.cats[p.cat]) return false;
+  const q = state.filters.search.trim().toLowerCase();
+  if (!q) return true;
+  const hay = [p.id, p.name, CATEGORIES[p.cat]?.label || "", CATEGORIES[p.cat]?.short || ""].join(" ").toLowerCase();
+  return hay.includes(q);
+}
+
+function attachDropZone(zone) {
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drop-target"); });
+  zone.addEventListener("dragleave", e => { if (e.target === zone) zone.classList.remove("drop-target"); });
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("drop-target");
+    const id = e.dataTransfer.getData("text/plain");
+    const p = state.patterns.find(x => x.id === id);
+    if (!p) return;
+    setPlacement(p, zone.dataset.tier);
+    render();
+    if (openPatternId === p.id) refreshPanel(p);
+  });
+}
+
+function makeTile(p) {
+  const tile = document.createElement("div");
+  tile.className = "tile";
+  if (openPatternId === p.id) tile.classList.add("active");
+  tile.style.setProperty("--cat-color", CATEGORIES[p.cat]?.color || "#888");
+  tile.draggable = true;
+  tile.dataset.id = p.id;
+  tile.title = `${p.id} · ${p.name}`;
+  tile.innerHTML = `
+    <span class="cat-label">${escapeHtml(CATEGORIES[p.cat]?.short || p.cat)}</span>
+    <span class="name">${escapeHtml(p.name)}</span>
+  `;
+  tile.addEventListener("click", () => {
+    if (openPatternId === p.id) closePanel();
+    else openPanel(p);
+  });
+  tile.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", p.id);
+    e.dataTransfer.effectAllowed = "move";
+    tile.classList.add("dragging");
+  });
+  tile.addEventListener("dragend", () => tile.classList.remove("dragging"));
+  return tile;
+}
+
+function withScrollAnchor(fn) {
+  const anchor = document.querySelector(".bench-header");
+  const before = anchor ? anchor.getBoundingClientRect().top : 0;
+  fn();
+  if (!anchor) return;
+  const after = anchor.getBoundingClientRect().top;
+  const delta = after - before;
+  if (Math.abs(delta) > 0.5) window.scrollBy(0, delta);
+}
+
+const chipsHost = document.getElementById("cat-chips");
+function renderChips() {
+  chipsHost.innerHTML = "";
+  Object.entries(CATEGORIES).forEach(([key, cat]) => {
+    const chip = document.createElement("span");
+    chip.className = "cat-chip" + (state.filters.cats[key] ? " on" : "");
+    chip.style.setProperty("--cat-color", cat.color);
+    chip.innerHTML = `<span class="dot"></span>${escapeHtml(cat.short)}`;
+    chip.title = `Toggle ${cat.label}`;
+    chip.addEventListener("click", () => {
+      state.filters.cats[key] = !state.filters.cats[key];
+      saveState();
+      withScrollAnchor(() => {
+        renderChips();
+        renderBench();
+      });
+    });
+    chipsHost.appendChild(chip);
+  });
+}
+
+const searchInput = document.getElementById("search");
+searchInput.value = state.filters.search;
+searchInput.addEventListener("input", () => {
+  state.filters.search = searchInput.value;
+  saveState();
+  withScrollAnchor(renderBench);
+});
+
+// Panel
+const panel = document.getElementById("panel");
+const panelContent = document.getElementById("panel-content");
+
+function openPanel(p) {
+  openPatternId = p.id;
+  refreshPanel(p);
+  panel.classList.add("open");
+  highlightActiveTile();
+}
+function closePanel() {
+  openPatternId = null;
+  panel.classList.remove("open");
+  highlightActiveTile();
+}
+function highlightActiveTile() {
+  document.querySelectorAll(".tile.active").forEach(t => t.classList.remove("active"));
+  if (openPatternId) {
+    document.querySelectorAll(`.tile[data-id="${openPatternId}"]`).forEach(t => t.classList.add("active"));
+  }
+}
+
+function refreshPanel(p) {
+  if (editMode) renderEditor(p);
+  else renderViewer(p);
+}
+
+function renderViewer(p) {
+  const placement = placementOf(p);
+  const tierBadge = placement === "bench"
+    ? `<span class="badge tier-bench">Bench (unranked)</span>`
+    : `<span class="badge tier-${placement.toLowerCase()}">${escapeHtml(state.tiers[placement]?.letter || placement)} — ${escapeHtml(state.tiers[placement]?.name || "")}${placement !== p.canonical ? ` · canonical ${escapeHtml(p.canonical)}` : ""}</span>`;
+  const catColor = CATEGORIES[p.cat]?.color || "#888";
+
+  panelContent.innerHTML = `
+    <div class="panel-id" style="color:${catColor}">${escapeHtml(p.id)}</div>
+    <h2>${escapeHtml(p.name)}</h2>
+    <div class="meta">
+      ${tierBadge}
+      <span class="badge" style="background:${catColor};color:#fff">Cat ${escapeHtml(p.cat)} · ${escapeHtml(CATEGORIES[p.cat]?.label || "")}</span>
+    </div>
+    <div class="desc">${escapeHtml(p.desc)}</div>
+    <h3>Sources & engagement</h3>
+    <ul class="sources">
+      ${p.sources.map(s => `<li><a href="${escapeAttr(s.u)}" target="_blank" rel="noopener">${escapeHtml(s.t)}</a></li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderEditor(p) {
+  const catOptions = Object.entries(CATEGORIES)
+    .map(([k, c]) => `<option value="${k}" ${k === p.cat ? "selected" : ""}>${k} — ${escapeHtml(c.label)}</option>`)
+    .join("");
+  const tierOptions = TIER_ORDER
+    .map(k => `<option value="${k}" ${k === p.canonical ? "selected" : ""}>${k} — ${escapeHtml(state.tiers[k].name)}</option>`)
+    .join("");
+
+  panelContent.innerHTML = `
+    <div class="panel-id" style="color:${CATEGORIES[p.cat]?.color || "#888"}">${escapeHtml(p.id)}</div>
+    <h2 style="margin-bottom:6px">Edit pattern</h2>
+    <div style="font-size:11px; color:#888; margin-bottom:14px">Edits autosave to your browser. Toggle Edit off when done.</div>
+    <div class="editor-form">
+      <div class="editor-row">
+        <label>Name</label>
+        <input id="ed-name" type="text" value="${escapeAttr(p.name)}">
+      </div>
+      <div class="editor-row two-col">
+        <div class="editor-row">
+          <label>Category</label>
+          <select id="ed-cat">${catOptions}</select>
+        </div>
+        <div class="editor-row">
+          <label>Canonical tier</label>
+          <select id="ed-canonical">${tierOptions}</select>
+        </div>
+      </div>
+      <div class="editor-row">
+        <label>Description</label>
+        <textarea id="ed-desc" rows="6">${escapeHtml(p.desc)}</textarea>
+      </div>
+      <div class="editor-row">
+        <label>Sources (title + URL)</label>
+        <div class="source-list" id="ed-sources"></div>
+        <button class="add-source" id="ed-add-source">+ Add source</button>
+      </div>
+      <button class="delete-pattern" id="ed-delete">Delete pattern</button>
+    </div>
+  `;
+
+  document.getElementById("ed-name").addEventListener("input", e => {
+    p.name = e.target.value;
+    saveState();
+    updateTileText(p);
+  });
+  document.getElementById("ed-cat").addEventListener("change", e => {
+    p.cat = e.target.value;
+    saveState();
+    render();
+  });
+  document.getElementById("ed-canonical").addEventListener("change", e => {
+    p.canonical = e.target.value;
+    saveState();
+  });
+  document.getElementById("ed-desc").addEventListener("input", e => {
+    p.desc = e.target.value;
+    saveState();
+  });
+
+  renderSources(p);
+  document.getElementById("ed-add-source").addEventListener("click", () => {
+    p.sources.push({ t: "", u: "" });
+    saveState();
+    renderSources(p);
+  });
+
+  document.getElementById("ed-delete").addEventListener("click", () => {
+    if (!confirm(`Delete pattern ${p.id} (${p.name})?`)) return;
+    const idx = state.patterns.findIndex(x => x.id === p.id);
+    if (idx >= 0) state.patterns.splice(idx, 1);
+    delete state.placements[p.id];
+    saveState();
+    closePanel();
+    render();
+  });
+}
+
+function renderSources(p) {
+  const host = document.getElementById("ed-sources");
+  host.innerHTML = "";
+  p.sources.forEach((s, idx) => {
+    const row = document.createElement("div");
+    row.className = "source-item";
+    row.innerHTML = `
+      <input type="text" placeholder="Source title" value="${escapeAttr(s.t)}">
+      <input type="url" placeholder="https://..." value="${escapeAttr(s.u)}">
+      <button title="Remove">×</button>
+    `;
+    const [titleInput, urlInput, rmBtn] = row.children;
+    titleInput.addEventListener("input", () => { s.t = titleInput.value; saveState(); });
+    urlInput.addEventListener("input", () => { s.u = urlInput.value; saveState(); });
+    rmBtn.addEventListener("click", () => {
+      p.sources.splice(idx, 1);
+      saveState();
+      renderSources(p);
+    });
+    host.appendChild(row);
+  });
+}
+
+function updateTileText(p) {
+  document.querySelectorAll(`.tile[data-id="${p.id}"] .name`).forEach(el => el.textContent = p.name);
+}
+
+document.getElementById("close").addEventListener("click", closePanel);
+
+// Overflow menu
+const menu = document.getElementById("menu");
+const menuBtn = document.getElementById("menu-btn");
+function openMenu() { menu.classList.add("open"); menuBtn.classList.add("open"); }
+function closeMenu() { menu.classList.remove("open"); menuBtn.classList.remove("open"); }
+menuBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  if (menu.classList.contains("open")) closeMenu();
+  else openMenu();
+});
+document.addEventListener("click", e => {
+  if (menu.classList.contains("open") && !menu.contains(e.target) && e.target !== menuBtn) {
+    closeMenu();
+  }
+});
+menu.addEventListener("click", e => {
+  // Close menu when a menu button is clicked (but not on file input or sep)
+  if (e.target.tagName === "BUTTON") closeMenu();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    if (modal.classList.contains("open")) closeModal();
+    else if (menu.classList.contains("open")) closeMenu();
+    else closePanel();
+  }
+});
+
+const editBtn = document.getElementById("edit-toggle");
+const addPatternBtn = document.getElementById("add-pattern");
+const modeLabel = document.getElementById("mode-label");
+editBtn.addEventListener("click", () => {
+  editMode = !editMode;
+  editBtn.classList.toggle("toggle-on", editMode);
+  editBtn.textContent = editMode ? "✓ Done editing" : "✎ Edit";
+  addPatternBtn.style.display = editMode ? "" : "none";
+  modeLabel.textContent = editMode ? "edit" : "view";
+  modeLabel.classList.toggle("edit", editMode);
+  document.body.classList.toggle("edit-mode", editMode);
+  render();
+  if (openPatternId) {
+    const p = state.patterns.find(x => x.id === openPatternId);
+    if (p) refreshPanel(p);
+  }
+});
+
+addPatternBtn.addEventListener("click", () => {
+  const id = nextPatternId("A");
+  const p = { id, cat: "A", canonical: "B", name: "New pattern", desc: "", sources: [] };
+  state.patterns.push(p);
+  saveState();
+  render();
+  openPanel(p);
+});
+
+function nextPatternId(catKey) {
+  let n = 1;
+  while (state.patterns.some(p => p.id === `${catKey}${n}`)) n++;
+  return `${catKey}${n}`;
+}
+
+document.getElementById("load-canonical").addEventListener("click", () => {
+  if (!confirm("Place every pattern in its canonical (discourse) tier? This overwrites the current ranking.")) return;
+  state.placements = {};
+  state.patterns.forEach(p => { state.placements[p.id] = p.canonical; });
+  saveState();
+  render();
+});
+document.getElementById("clear-all").addEventListener("click", () => {
+  const ranked = state.patterns.filter(p => placementOf(p) !== "bench").length;
+  if (ranked === 0) return;
+  if (!confirm(`Move all ${ranked} ranked patterns back to the bench?`)) return;
+  state.placements = {};
+  saveState();
+  render();
+});
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("Reset everything (tiers, patterns, rankings) to the original defaults? Your edits will be lost.")) return;
+  state = makeDefaults();
+  saveState();
+  renderChips();
+  searchInput.value = "";
+  closePanel();
+  render();
+});
+
+document.getElementById("download-json").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `harness-tierlist-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+const fileInput = document.getElementById("file-input");
+document.getElementById("load-json").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed.version || !parsed.patterns || !parsed.tiers) {
+        alert("This doesn't look like a valid tier-list JSON (missing version/patterns/tiers).");
+        return;
+      }
+      if (parsed.version !== 1) {
+        if (!confirm(`File is version ${parsed.version}, expected 1. Try to load anyway?`)) return;
+      }
+      if (!parsed.filters) parsed.filters = makeDefaults().filters;
+      if (!parsed.filters.cats) parsed.filters.cats = makeDefaults().filters.cats;
+      if (typeof parsed.filters.search !== "string") parsed.filters.search = "";
+      if (!parsed.placements) parsed.placements = {};
+      state = parsed;
+      saveState();
+      renderChips();
+      searchInput.value = state.filters.search;
+      closePanel();
+      render();
+    } catch (e) {
+      alert("Failed to parse JSON: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+  fileInput.value = "";
+});
+
+const modal = document.getElementById("modal");
+function closeModal() { modal.classList.remove("open"); }
+document.getElementById("export-md").addEventListener("click", () => {
+  document.getElementById("modal-text").value = exportMarkdown();
+  modal.classList.add("open");
+});
+document.getElementById("close-modal").addEventListener("click", closeModal);
+document.getElementById("copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("modal-text").value);
+  const btn = document.getElementById("copy");
+  btn.textContent = "Copied ✓";
+  setTimeout(() => { btn.textContent = "Copy to clipboard"; }, 1500);
+});
+modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+
+function exportMarkdown() {
+  const today = new Date().toISOString().slice(0, 10);
+  let out = `# Harness strategies — my tier list\n\n*Updated: ${today}*\n\n`;
+  out += `Source catalog: \`harness-strategies-catalog.md\`.\n\n`;
+
+  const ranked = state.patterns.filter(p => placementOf(p) !== "bench");
+  if (ranked.length === 0) {
+    out += `_No patterns ranked yet._\n`;
+    return out;
+  }
+
+  TIER_ORDER.forEach(tierKey => {
+    const meta = state.tiers[tierKey];
+    const tierPatterns = state.patterns.filter(p => placementOf(p) === tierKey);
+    if (tierPatterns.length === 0) return;
+    out += `## ${meta.letter} — ${meta.name}\n\n*${meta.desc}*\n\n`;
+    out += `| ID | Pattern | Category | Canonical |\n| --- | --- | --- | --- |\n`;
+    tierPatterns.sort(byCatThenId);
+    tierPatterns.forEach(p => {
+      const canon = p.canonical === tierKey ? "—" : p.canonical;
+      out += `| ${p.id} | ${p.name} | ${CATEGORIES[p.cat]?.short || p.cat} | ${canon} |\n`;
+    });
+    out += `\n`;
+  });
+
+  const unranked = state.patterns.filter(p => placementOf(p) === "bench");
+  if (unranked.length > 0) {
+    out += `## Unranked\n\n${unranked.length} of ${state.patterns.length} on bench: `;
+    out += unranked.map(p => p.id).join(", ") + ".\n";
+  }
+  return out;
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+renderChips();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Harness Strategies — Archive</title>
+<style>
+  :root {
+    --bg: #2b2b2b;
+    --surface: #1a1a1a;
+    --surface-2: #232323;
+    --line: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #b0b0b0;
+    --text-faint: #888;
+    --accent: #9ec5e8;
+
+    --tier-s: #ff7f7f;
+    --tier-a: #ffbf7f;
+    --tier-b: #ffdf7f;
+    --tier-c: #bfff7f;
+    --tier-f: #b07fff;
+
+    --cat-a: #c44a4a; --cat-b: #d27a2a; --cat-c: #c9a02a;
+    --cat-d: #4a9c3a; --cat-e: #2f9c84; --cat-f: #3a7fb8;
+    --cat-g: #5a5ab4; --cat-h: #9248ad; --cat-i: #b14a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--text); background: var(--bg);
+    font-size: 14px; line-height: 1.5;
+  }
+
+  header, .filter, main {
+    max-width: 1100px; margin-left: auto; margin-right: auto;
+    padding-left: 24px; padding-right: 24px;
+  }
+  header {
+    padding-top: 14px; padding-bottom: 10px;
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 {
+    margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
+    color: #cfcfcf;
+  }
+  header nav { margin-left: auto; font-size: 12px; }
+  header nav a {
+    color: var(--text-dim); text-decoration: none;
+    padding: 4px 8px; border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+  header nav a:hover { color: var(--text); border-color: #5a5a5a; }
+
+  .filter {
+    padding-top: 12px; padding-bottom: 12px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+    border-bottom: 1px solid var(--line);
+  }
+  .filter input {
+    background: var(--surface); border: 1px solid var(--line); color: var(--text);
+    padding: 0 10px; height: 26px; border-radius: 3px;
+    font-size: 12px; width: 240px; font-family: inherit;
+  }
+  .filter input::placeholder { color: #6a6a6a; }
+  .cat-chips { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .cat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0 9px; height: 22px;
+    background: var(--surface-2); color: #888;
+    border: 1px solid var(--line); border-radius: 11px;
+    font-size: 10.5px; font-weight: 600; cursor: pointer;
+    user-select: none; text-transform: uppercase; letter-spacing: 0.03em;
+    transition: all 0.07s;
+  }
+  .cat-chip.on { color: #fff; background: var(--cat-color); border-color: var(--cat-color); }
+  .cat-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cat-color); }
+  .cat-chip.on .dot { background: rgba(255,255,255,0.9); }
+  .filter .count { font-size: 11px; color: var(--text-faint); margin-left: auto; font-style: italic; }
+
+  main { padding-top: 28px; padding-bottom: 80px; }
+
+  .cat-section { margin-bottom: 36px; scroll-margin-top: 70px; }
+  .cat-section h2 {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--cat-color); margin: 0 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--cat-color);
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .cat-section h2 .cat-letter {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px; color: var(--cat-color);
+  }
+  .cat-section h2 .count {
+    margin-left: auto; font-size: 10.5px;
+    color: var(--text-faint); font-weight: 500;
+    text-transform: none; letter-spacing: 0;
+  }
+
+  .entry {
+    padding: 14px 0 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .entry:last-child { border-bottom: 0; }
+  .entry-head {
+    display: flex; align-items: baseline; gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .entry-id {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; font-weight: 700;
+    color: var(--cat-color); letter-spacing: 0.02em;
+    min-width: 32px;
+  }
+  .entry-name {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    margin: 0;
+  }
+  .entry-tier {
+    font-size: 10.5px; font-weight: 700;
+    padding: 1px 7px; border-radius: 2px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-left: auto;
+  }
+  .entry-tier.tier-s { background: var(--tier-s); color: #5a1010; }
+  .entry-tier.tier-a { background: var(--tier-a); color: #5a3010; }
+  .entry-tier.tier-b { background: var(--tier-b); color: #5a4810; }
+  .entry-tier.tier-c { background: var(--tier-c); color: #1c4810; }
+  .entry-tier.tier-f { background: var(--tier-f); color: #fff; }
+
+  .entry-desc {
+    color: var(--text-dim);
+    margin: 0 0 10px;
+    max-width: 75ch;
+  }
+  .entry-sources {
+    font-size: 12px; color: var(--text-faint);
+    padding-left: 4px;
+  }
+  .entry-sources li {
+    list-style: none;
+    padding: 2px 0 2px 14px;
+    position: relative;
+  }
+  .entry-sources li::before {
+    content: "→"; position: absolute; left: 0; top: 2px;
+    color: #555;
+  }
+  .entry-sources a {
+    color: var(--text-dim); text-decoration: none;
+    border-bottom: 1px dotted #555;
+  }
+  .entry-sources a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .empty {
+    text-align: center; color: var(--text-faint);
+    padding: 60px 0; font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    header, .filter, main { padding-left: 14px; padding-right: 14px; }
+    .filter input { width: 100%; }
+    .filter .count { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Harness Strategies · Archive</h1>
+  <nav><a href="tier-list.html">Tier list →</a></nav>
+</header>
+
+<div class="filter">
+  <input id="search" type="search" placeholder="search id, name, category…">
+  <div class="cat-chips" id="cat-chips"></div>
+  <span class="count" id="count"></span>
+</div>
+
+<main id="entries"></main>
+
+<script>
+const DATA_KEY = "harness-tierlist-data-v1";
+
+const CATEGORIES = {
+  A: { label: "Instructions & Context",    short: "Instructions",    color: "var(--cat-a)" },
+  B: { label: "AI Worker Shaping",         short: "AI Workers",      color: "var(--cat-b)" },
+  C: { label: "Multi-Agent Orchestration", short: "Multi-Agent",     color: "var(--cat-c)" },
+  D: { label: "Local Enforcement",         short: "Local Enforce",   color: "var(--cat-d)" },
+  E: { label: "PR Review Automation",      short: "PR Review",       color: "var(--cat-e)" },
+  F: { label: "PR Gates",                  short: "PR Gates",        color: "var(--cat-f)" },
+  G: { label: "Mechanical Automation",     short: "Mechanical",      color: "var(--cat-g)" },
+  H: { label: "Standards & Conventions",   short: "Standards",       color: "var(--cat-h)" },
+  I: { label: "External Integration",      short: "External",        color: "var(--cat-i)" },
+};
+
+const DEFAULT_PATTERNS = [
+  { id: "A1", cat: "A", canonical: "S", name: "CLAUDE.md / AGENTS.md",
+    desc: "A markdown file at the repo root that auto-loads into every agent session as standing instructions: build commands, code style, architecture pointers, what to never touch.",
+    sources: [
+      { t: "Anthropic — Best practices for Claude Code (HN 614/257)", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "AGENTS.md spec (Linux Foundation, ~60K repos, HN 837/382)", u: "https://agents.md/" },
+      { t: "GitHub Blog — 2,500-repo agents.md study", u: "https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/" },
+    ]},
+  { id: "A2", cat: "A", canonical: "S", name: "Path-scoped / per-directory rules",
+    desc: "Multiple instruction files at different directory levels; agents pick up the closest one. Used to give different conventions to different packages in a monorepo.",
+    sources: [
+      { t: "Cursor — Rules docs", u: "https://cursor.com/docs/rules" },
+      { t: "Anthropic — child-directory CLAUDE.md", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Datadog — Steering AI Agents in Monorepos", u: "https://dev.to/datadog-frontend-dev/steering-ai-agents-in-monorepos-with-agentsmd-13g0" },
+    ]},
+  { id: "A3", cat: "A", canonical: "S", name: "Skills / SKILL.md",
+    desc: ".claude/skills/<name>/SKILL.md with instructions + scripts the agent loads only when relevant — progressive disclosure of domain knowledge.",
+    sources: [
+      { t: "Anthropic — Claude Skills", u: "https://code.claude.com/docs/en/skills" },
+      { t: "Counter-evidence: AGENTS.md outperforms skills (Vercel)", u: "https://news.ycombinator.com/item?id=46809708" },
+    ]},
+  { id: "A4", cat: "A", canonical: "A", name: "Map-not-encyclopedia doc style",
+    desc: "Agent-facing docs should be terse pointers (where to look, what commands to run) rather than exhaustive prose. ETH study found long files raise cost 20%+ and LLM-generated AGENTS.md hurt performance 2–3%.",
+    sources: [
+      { t: "GitHub Blog — 2,500-repo AGENTS.md study", u: "https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/" },
+      { t: "ETH Zürich AGENTS.md empirical study", u: "https://news.ycombinator.com/item?id=47295454" },
+    ]},
+  { id: "A5", cat: "A", canonical: "A", name: "README / spec-driven development",
+    desc: "Write the spec/README before letting the agent code; treat the spec as the contract.",
+    sources: [
+      { t: "Amazon Kiro", u: "https://kiro.dev/" },
+      { t: "Birgitta Böckeler / Fowler — SPDD", u: "https://martinfowler.com/articles/structured-prompt-driven/" },
+    ]},
+  { id: "A6", cat: "A", canonical: "A", name: "Karpathy LLM-Wiki / compiled KB",
+    desc: "Drop raw sources into a folder; have the LLM compile them into a cross-referenced markdown wiki the agent then consumes. Treats context like a build artifact.",
+    sources: [
+      { t: "Karpathy gist", u: "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" },
+      { t: "VentureBeat coverage", u: "https://venturebeat.com/data/karpathy-shares-llm-knowledge-base-architecture-that-bypasses-rag-with-an" },
+    ]},
+
+  { id: "B1", cat: "B", canonical: "S", name: "Subagents",
+    desc: ".claude/agents/<name>.md defines a specialized assistant with its own system prompt, tools, context window. Anthropic's research showed Opus lead + Sonnet workers beat single-agent by 90%+.",
+    sources: [
+      { t: "Anthropic — Sub-agents docs", u: "https://code.claude.com/docs/en/sub-agents" },
+      { t: "Anthropic Engineering — Multi-agent research system", u: "https://www.anthropic.com/engineering/multi-agent-research-system" },
+    ]},
+  { id: "B2", cat: "B", canonical: "S", name: "Hooks (lifecycle shell scripts)",
+    desc: "PreToolUse / PostToolUse / OnStop scripts that run lint, format, secrets-scan, or block writes. Deterministic — unlike CLAUDE.md instructions.",
+    sources: [
+      { t: "Anthropic — Hooks reference", u: "https://code.claude.com/docs/en/hooks" },
+      { t: "HN — Claude Code now supports hooks", u: "https://news.ycombinator.com/item?id=44429225" },
+    ]},
+  { id: "B3", cat: "B", canonical: "S", name: "Plan mode",
+    desc: "A read-only mode where the agent reads files and proposes a plan without modifying anything; user reviews/edits the plan before unleashing implementation.",
+    sources: [{ t: "Anthropic — Explore-plan-code", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "B4", cat: "B", canonical: "S", name: "Headless mode (claude -p)",
+    desc: "Run agent from CI, pre-commit, or pipeline scripts; structured JSON output for programmatic parsing.",
+    sources: [{ t: "Anthropic — Headless mode", u: "https://code.claude.com/docs/en/headless" }]},
+  { id: "B5", cat: "B", canonical: "S", name: "Permission allowlists / sandbox / auto",
+    desc: "Three levels of approval reduction: allowlist specific commands, OS-level sandbox, classifier model that auto-approves safe actions.",
+    sources: [
+      { t: "Anthropic — Permission modes", u: "https://code.claude.com/docs/en/permission-modes" },
+      { t: "Simon Willison — Auto mode", u: "https://simonwillison.net/2026/Mar/24/" },
+    ]},
+  { id: "B6", cat: "B", canonical: "S", name: "Slash commands",
+    desc: "User-defined /foo invocations that fire a fixed prompt or skill. Used for repeatable workflows like /fix-issue 1234 or Sunshine's /push.",
+    sources: [{ t: "Anthropic Skills with disable-model-invocation", u: "https://code.claude.com/docs/en/skills" }]},
+  { id: "B7", cat: "B", canonical: "A", name: "CLI-tool-first over MCP",
+    desc: "Wrap external services in a thin CLI (gh, aws, custom xyz-cli) rather than an MCP server, because CLIs are more context-efficient and easier to permission.",
+    sources: [
+      { t: "Anthropic best-practices — Use CLI tools", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Kyle (HumanLayer) — Skill issue", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" },
+    ]},
+  { id: "B8", cat: "B", canonical: "S", name: "Context management (/clear, /compact)",
+    desc: "Active hygiene: clear between unrelated tasks; compact under instruction; rewind to checkpoints; pin important context. Context is the bottleneck.",
+    sources: [
+      { t: "Anthropic best-practices", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Addy Osmani — Agent Harness Engineering", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+    ]},
+  { id: "B9", cat: "B", canonical: "S", name: "Subagents-for-investigation",
+    desc: "Use a subagent specifically to read many files / explore, so its noise doesn't pollute main context — the subagent returns a 1-paragraph summary.",
+    sources: [{ t: "Anthropic best-practices — Subagents for investigation", u: "https://code.claude.com/docs/en/best-practices" }]},
+
+  { id: "C1", cat: "C", canonical: "S", name: "Multi-agent code review panel",
+    desc: "Multiple subagents reviewing the same diff for different concerns (security, perf, style, tests) and voting/aggregating findings.",
+    sources: [
+      { t: "Anthropic — Code Review (multi-agent)", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" },
+      { t: "HAMY — 9 Parallel AI Agents", u: "https://hamy.xyz/blog/2026-02_code-reviews-claude-subagents" },
+    ]},
+  { id: "C2", cat: "C", canonical: "S", name: "Writer/Reviewer split",
+    desc: "One session writes; a second fresh-context session reviews. Fresh context removes self-confirmation bias.",
+    sources: [
+      { t: "Anthropic — Run multiple sessions", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Addy Osmani — Generator/Evaluator splits", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+    ]},
+  { id: "C3", cat: "C", canonical: "S", name: "Orchestrator-worker",
+    desc: "Lead agent plans, spawns parallel subagents, synthesizes results, calls a Citation agent. Anthropic Research's pattern.",
+    sources: [
+      { t: "Anthropic — Multi-agent research system", u: "https://www.anthropic.com/engineering/multi-agent-research-system" },
+      { t: "Simon Willison's notes", u: "https://simonwillison.net/2025/Jun/14/multi-agent-research-system/" },
+    ]},
+  { id: "C4", cat: "C", canonical: "F", name: "Don't build multi-agents",
+    desc: "Cognition's argument: parallel multi-agent systems are fragile because subagents can't share full traces; prefer sequential pipelines with full context. Live debate against C1/C3.",
+    sources: [
+      { t: "Cognition — Don't Build Multi-Agents", u: "https://cognition.ai/blog/dont-build-multi-agents" },
+      { t: "HN — 200+ point thread", u: "https://news.ycombinator.com/item?id=45096962" },
+    ]},
+  { id: "C5", cat: "C", canonical: "A", name: "Fan-out across files",
+    desc: "Loop a single-file prompt over thousands of files (e.g., React→Vue migration); use --allowedTools to scope.",
+    sources: [{ t: "Anthropic — Fan out across files", u: "https://code.claude.com/docs/en/best-practices" }]},
+
+  { id: "D1", cat: "D", canonical: "S", name: "Post-edit lint / format hook",
+    desc: "PostToolUse hook runs eslint / ruff / prettier / detekt after each file edit; surfaces errors back to the agent's context.",
+    sources: [
+      { t: "Anthropic — Hooks docs", u: "https://code.claude.com/docs/en/hooks" },
+      { t: "Fowler — Harness engineering", u: "https://martinfowler.com/articles/harness-engineering.html" },
+    ]},
+  { id: "D2", cat: "D", canonical: "A", name: "Structure-aware lint (ast-grep)",
+    desc: "Prefer AST-aware tools over regex/text matching because they catch semantic violations LLMs miss.",
+    sources: [
+      { t: "Trail of Bits — claude-code-config", u: "https://deepwiki.com/trailofbits/claude-code-config/10.3-pre-commit-hooks" },
+      { t: "ast-grep-pre-commit", u: "https://github.com/boidolr/ast-grep-pre-commit" },
+    ]},
+  { id: "D3", cat: "D", canonical: "S", name: "Type-check / compile gate",
+    desc: "Run tsc --noEmit / mypy / kotlinc / cargo check after each edit so type errors surface immediately to the agent.",
+    sources: [{ t: "Anthropic — single highest-leverage thing", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "D4", cat: "D", canonical: "S", name: "Test gate as feedback loop",
+    desc: "Write-failing-test-then-fix or run subset suites after each change. Frames tests as agent feedback rather than just CI guard.",
+    sources: [
+      { t: "Anthropic — Give Claude a way to verify", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Kyle/HumanLayer — subset suites", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" },
+    ]},
+  { id: "D5", cat: "D", canonical: "A", name: "Fitness-function tests",
+    desc: "ArchUnit, Konsist, dep-cruiser. Tests that assert architectural rules (module X may not depend on Y, layer order, naming). Catches drift the agent doesn't notice.",
+    sources: [
+      { t: "Fowler — ArchUnit, fitness functions", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "Building Evolutionary Architectures", u: "https://www.thoughtworks.com/insights/books/building-evolutionary-architectures" },
+    ]},
+  { id: "D6", cat: "D", canonical: "S", name: "Pre-commit / pre-push gate",
+    desc: "Block the agent from committing/pushing unless lint+type+test pass; common pattern is prek or git pre-commit framework.",
+    sources: [{ t: "pre-commit framework", u: "https://pre-commit.com/" }]},
+  { id: "D7", cat: "D", canonical: "A", name: "UI screenshot diff verification",
+    desc: "Agent screenshots its UI output and compares to the design; Claude in Chrome is Anthropic's first-party version.",
+    sources: [{ t: "Anthropic — Claude in Chrome", u: "https://code.claude.com/docs/en/chrome" }]},
+
+  { id: "E1", cat: "E", canonical: "S", name: "PR-bot review",
+    desc: "Bot reviews each PR, posts inline comments and a summary; doesn't auto-approve. GitHub Copilot, CodeRabbit, Anthropic Code Review all in this space.",
+    sources: [
+      { t: "Anthropic Code Review", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" },
+      { t: "GitHub Copilot + AGENTS.md", u: "https://github.blog/changelog/2025-08-28-copilot-coding-agent-now-supports-agents-md-custom-instructions/" },
+    ]},
+  { id: "E2", cat: "E", canonical: "B", name: "Baseline auto-update bot",
+    desc: "Bot runs lint/test suite and updates baseline files automatically when an existing exception is removed; reduces friction of \"fix all warnings\" rules.",
+    sources: [{ t: "OpenAI Harness Engineering post", u: "https://openai.com/index/introducing-codex/" }]},
+  { id: "E3", cat: "E", canonical: "B", name: "Required AI review gate",
+    desc: "PR cannot merge until an AI reviewer has signed off. Commonly opposed because of false positives; sometimes reformulated as \"AI must run; human must merge.\"",
+    sources: [{ t: "Anthropic: AI won't approve PRs", u: "https://thenewstack.io/anthropic-launches-a-multi-agent-code-review-tool-for-claude-code/" }]},
+
+  { id: "F1", cat: "F", canonical: "S", name: "Required green CI before merge",
+    desc: "Branch-protection rule that blocks merge unless build/test pass. Universal; framed in harness writeups as \"back-pressure\" feedback.",
+    sources: [{ t: "Kyle/HumanLayer — back-pressure", u: "https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents" }]},
+  { id: "F2", cat: "F", canonical: "A", name: "Coverage / mutation-test gate",
+    desc: "Block merges that drop coverage or fail mutation thresholds.",
+    sources: [{ t: "Fowler — coverage, mutation testing", u: "https://martinfowler.com/articles/harness-engineering.html" }]},
+  { id: "F3", cat: "F", canonical: "A", name: "Approved fixtures / golden-file",
+    desc: "Use a vetted set of test fixtures the agent's output must pass; verify fixtures by hand, then trust the loop.",
+    sources: [
+      { t: "Fowler — approved fixtures pattern", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "SWE-bench Verified", u: "https://www.swebench.com/" },
+    ]},
+
+  { id: "G1", cat: "G", canonical: "A", name: "Deterministic codemods",
+    desc: "Skip the LLM for structural refactors that have an exact recipe. Use OpenRewrite recipes / jscodeshift, let the LLM handle judgment parts.",
+    sources: [
+      { t: "Fowler — codemods, OpenRewrite", u: "https://martinfowler.com/articles/harness-engineering.html" },
+      { t: "12-Factor Agents principle 1", u: "https://github.com/humanlayer/12-factor-agents" },
+    ]},
+  { id: "G2", cat: "G", canonical: "A", name: "LSP integration",
+    desc: "Plug the language server into the agent so it gets precise definitions / references / errors instead of grepping.",
+    sources: [
+      { t: "Anthropic — code intelligence plugin", u: "https://code.claude.com/docs/en/best-practices" },
+      { t: "Fowler — LSP as feedforward control", u: "https://martinfowler.com/articles/harness-engineering.html" },
+    ]},
+  { id: "G3", cat: "G", canonical: "B", name: "Background-process monitor",
+    desc: "Long-running watchers (test runner in watch mode, dev server) feed errors continuously to the agent rather than running suites on demand.",
+    sources: [{ t: "Community discussion (claudefa.st hooks guide)", u: "https://claudefa.st" }]},
+
+  { id: "H1", cat: "H", canonical: "B", name: "Golden principles + enforcement column",
+    desc: "Doc lists each rule alongside the mechanism that enforces it (lint rule X, hook Y, test Z) — clear which rules are advisory vs deterministic.",
+    sources: [{ t: "Anthropic: \"if Claude already does it, delete the rule or convert to a hook\"", u: "https://code.claude.com/docs/en/best-practices" }]},
+  { id: "H2", cat: "H", canonical: "A", name: "Lint-enforced naming conventions",
+    desc: "File-name, class-name, package-layout rules turned into lint or structural-test failures so the agent gets feedback if it misnames.",
+    sources: [{ t: "Konsist (Kotlin), ArchUnit (Java), eslint plugins", u: "https://docs.konsist.lemonappdev.com/" }]},
+  { id: "H3", cat: "H", canonical: "A", name: "Declared dependencies preventing drift",
+    desc: "Lock dependency versions; lock package-to-package allowed dependencies (gradle version catalog, Nx project graph).",
+    sources: [
+      { t: "Nx — Teach Your AI Agent How to Work in a Monorepo", u: "https://nx.dev/blog/nx-ai-agent-skills" },
+      { t: "Monorepo.tools — Monorepos & AI", u: "https://monorepo.tools/ai" },
+    ]},
+  { id: "H4", cat: "H", canonical: "A", name: "Monorepo package boundaries",
+    desc: "Use the monorepo's project graph so the agent only sees the relevant package's files; package boundaries become a context-scoping primitive.",
+    sources: [
+      { t: "Nx posts above", u: "https://nx.dev/blog/nx-ai-agent-skills" },
+      { t: "d4b — AI agents in monorepos", u: "https://www.d4b.dev/blog/2026-04-03-ai-agents-in-monorepos-what-to-configure-differently-from-a-single-product-repo" },
+    ]},
+
+  { id: "I1", cat: "I", canonical: "B", name: "Mandated workflow (always /push)",
+    desc: "A single slash-command entrypoint that orchestrates lint→test→commit→PR with the right hooks. Sunshine's /push mandate is one example.",
+    sources: [{ t: "Anthropic Skills with disable-model-invocation: true", u: "https://code.claude.com/docs/en/skills" }]},
+  { id: "I2", cat: "I", canonical: "S", name: "Auto-mode classifier",
+    desc: "Sub-classifier model decides if an action is safe to auto-approve; only escalates \"scope escalation, unknown infrastructure, hostile content.\"",
+    sources: [
+      { t: "Simon Willison — Auto mode for Claude Code", u: "https://simonwillison.net/2026/Mar/24/" },
+      { t: "InfoQ — Inside Claude Code Auto Mode", u: "https://www.infoq.com/news/2026/05/anthropic-claude-code-auto-mode/" },
+    ]},
+  { id: "I3", cat: "I", canonical: "S", name: "12-Factor Agents principles",
+    desc: "Dexter Horthy's principles: own your prompts/context, small focused agents, structured-output tool calls, stateless reducers. Design rubric. 19.7K stars.",
+    sources: [{ t: "humanlayer/12-factor-agents", u: "https://github.com/humanlayer/12-factor-agents" }]},
+  { id: "I4", cat: "I", canonical: "A", name: "Agent evals (held-out task suite)",
+    desc: "A held-out set of tasks the harness should solve; rerun on each harness change; measure pass-rate, cost, latency.",
+    sources: [
+      { t: "SWE-bench / SWE-bench Verified", u: "https://www.swebench.com/" },
+      { t: "OpenHands evaluation harness", u: "https://docs.openhands.dev/openhands/usage/developers/evaluation-harness" },
+    ]},
+  { id: "I5", cat: "I", canonical: "B", name: "Memory systems beyond CLAUDE.md",
+    desc: "Tools that hook session events, extract decisions, and write back into CLAUDE.md/MEMORY.md — automating the \"compounds over time\" promise.",
+    sources: [
+      { t: "claude-mem", u: "https://github.com/thedotmack/claude-mem" },
+      { t: "claude-memory-compiler", u: "https://github.com/coleam00/claude-memory-compiler" },
+    ]},
+  { id: "I6", cat: "I", canonical: "A", name: "Worktrees for parallel sessions",
+    desc: "Each Claude session runs in its own git worktree so edits don't collide; supports parallel feature branches without context cross-pollination.",
+    sources: [{ t: "Anthropic — Worktrees", u: "https://code.claude.com/docs/en/worktrees" }]},
+  { id: "I7", cat: "I", canonical: "B", name: "Ralph Loop (long-horizon)",
+    desc: "A long-running loop pattern where the agent re-plans, executes, and verifies repeatedly without user intervention until a goal is reached.",
+    sources: [
+      { t: "Addy Osmani — Agent Harness Engineering", u: "https://addyosmani.com/blog/agent-harness-engineering/" },
+      { t: "ralph-loop plugin", u: "https://github.com/ghuntley/ralph" },
+    ]},
+];
+
+// Pull patterns from tier-list's localStorage if available, otherwise use defaults
+let patterns = DEFAULT_PATTERNS;
+try {
+  const raw = localStorage.getItem(DATA_KEY);
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed?.patterns && Array.isArray(parsed.patterns) && parsed.patterns.length > 0) {
+      patterns = parsed.patterns;
+    }
+  }
+} catch (e) {}
+
+const filters = {
+  search: "",
+  cats: Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, true])),
+};
+
+const entriesEl = document.getElementById("entries");
+const chipsEl = document.getElementById("cat-chips");
+const countEl = document.getElementById("count");
+const searchEl = document.getElementById("search");
+
+function matchesFilters(p) {
+  if (!filters.cats[p.cat]) return false;
+  const q = filters.search.trim().toLowerCase();
+  if (!q) return true;
+  const hay = [p.id, p.name, p.desc, CATEGORIES[p.cat]?.label || "", CATEGORIES[p.cat]?.short || ""].join(" ").toLowerCase();
+  return hay.includes(q);
+}
+
+function render() {
+  entriesEl.innerHTML = "";
+  const visible = patterns.filter(matchesFilters);
+  countEl.textContent = visible.length === patterns.length
+    ? `${patterns.length} patterns`
+    : `${visible.length} of ${patterns.length}`;
+
+  if (visible.length === 0) {
+    entriesEl.innerHTML = `<div class="empty">No patterns match.</div>`;
+    return;
+  }
+
+  Object.entries(CATEGORIES).forEach(([key, cat]) => {
+    const inCat = visible.filter(p => p.cat === key).sort((a, b) => a.id.localeCompare(b.id));
+    if (inCat.length === 0) return;
+
+    const section = document.createElement("section");
+    section.className = "cat-section";
+    section.id = `cat-${key}`;
+    section.style.setProperty("--cat-color", cat.color);
+    section.innerHTML = `
+      <h2>
+        <span class="cat-letter">${key}</span>
+        <span>${escapeHtml(cat.label)}</span>
+        <span class="count">${inCat.length}</span>
+      </h2>
+    `;
+    inCat.forEach(p => section.appendChild(makeEntry(p)));
+    entriesEl.appendChild(section);
+  });
+}
+
+function makeEntry(p) {
+  const entry = document.createElement("article");
+  entry.className = "entry";
+  entry.id = `p-${p.id}`;
+  entry.style.setProperty("--cat-color", CATEGORIES[p.cat]?.color || "#888");
+
+  const tierClass = `tier-${p.canonical.toLowerCase()}`;
+  const sourcesHtml = (p.sources || []).map(s =>
+    `<li><a href="${escapeAttr(s.u)}" target="_blank" rel="noopener">${escapeHtml(s.t)}</a></li>`
+  ).join("");
+
+  entry.innerHTML = `
+    <div class="entry-head">
+      <span class="entry-id">${escapeHtml(p.id)}</span>
+      <h3 class="entry-name">${escapeHtml(p.name)}</h3>
+      <span class="entry-tier ${tierClass}">${escapeHtml(p.canonical)}</span>
+    </div>
+    <p class="entry-desc">${escapeHtml(p.desc)}</p>
+    ${sourcesHtml ? `<ul class="entry-sources">${sourcesHtml}</ul>` : ""}
+  `;
+  return entry;
+}
+
+function renderChips() {
+  chipsEl.innerHTML = "";
+  Object.entries(CATEGORIES).forEach(([key, cat]) => {
+    const chip = document.createElement("span");
+    chip.className = "cat-chip" + (filters.cats[key] ? " on" : "");
+    chip.style.setProperty("--cat-color", cat.color);
+    chip.innerHTML = `<span class="dot"></span>${escapeHtml(cat.short)}`;
+    chip.title = `Toggle ${cat.label}`;
+    chip.addEventListener("click", () => {
+      filters.cats[key] = !filters.cats[key];
+      renderChips();
+      render();
+    });
+    chipsEl.appendChild(chip);
+  });
+}
+
+searchEl.addEventListener("input", () => {
+  filters.search = searchEl.value;
+  render();
+});
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+renderChips();
+render();
+</script>
+</body>
+</html>
