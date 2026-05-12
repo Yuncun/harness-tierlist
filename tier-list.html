@@ -526,7 +526,7 @@ const DEFAULT_PATTERNS = [
       { t: "Simon Willison — Auto mode", u: "https://simonwillison.net/2026/Mar/24/" },
     ]},
   { id: "B6", cat: "B", canonical: "S", name: "Slash commands",
-    desc: "User-defined /foo invocations that fire a fixed prompt or skill. Used for repeatable workflows like /fix-issue 1234 or Sunshine's /push.",
+    desc: "User-defined /foo invocations that fire a fixed prompt or skill. Used for repeatable workflows like /fix-issue 1234 or a mandated /push wrapper.",
     sources: [{ t: "Anthropic Skills with disable-model-invocation", u: "https://code.claude.com/docs/en/skills" }]},
   { id: "B7", cat: "B", canonical: "A", name: "CLI-tool-first over MCP",
     desc: "Wrap external services in a thin CLI (gh, aws, custom xyz-cli) rather than an MCP server, because CLIs are more context-efficient and easier to permission.",
@@ -668,7 +668,7 @@ const DEFAULT_PATTERNS = [
     ]},
 
   { id: "I1", cat: "I", canonical: "B", name: "Mandated workflow (always /push)",
-    desc: "A single slash-command entrypoint that orchestrates lint→test→commit→PR with the right hooks. Sunshine's /push mandate is one example.",
+    desc: "A single slash-command entrypoint that orchestrates lint→test→commit→PR with the right hooks. Team-wide /push mandates are one example.",
     sources: [{ t: "Anthropic Skills with disable-model-invocation: true", u: "https://code.claude.com/docs/en/skills" }]},
   { id: "I2", cat: "I", canonical: "S", name: "Auto-mode classifier",
     desc: "Sub-classifier model decides if an action is safe to auto-approve; only escalates \"scope escalation, unknown infrastructure, hostile content.\"",
